@@ -1,0 +1,1 @@
+chmod 777 star-wars.sh
