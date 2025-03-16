@@ -1,4 +1,6 @@
+.bsp
 .idea
+.scala-build
 *.class
 *.log
 
