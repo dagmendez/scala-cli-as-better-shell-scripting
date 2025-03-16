@@ -1,6 +1,7 @@
 .bsp
 .idea
 .scala-build
+output
 *.class
 *.log
 
