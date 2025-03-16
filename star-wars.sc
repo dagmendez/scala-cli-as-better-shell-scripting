@@ -1,8 +1,11 @@
 //> using scala 3.3.5
-
 //> using dep com.lihaoyi::os-lib:0.11.4
 //> using dep com.lihaoyi::requests:0.9.0
 //> using dep com.lihaoyi::upickle:4.1.0
+
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 // Create, or if it exists already, clear and recreate the output dir
 val dest = os.pwd / "output"
@@ -13,31 +16,33 @@ os.makeDir(dest)
 
 val filename = "planets.txt"
 
-if os.exists(os.pwd / filename) then
+if os.exists(os.pwd / filename) 
+then
   // Read the file
   os.read.lines
     .stream(os.pwd / filename) // Stream in case it's a lot of data.
     .foreach: url =>
+
       // Request the data
-      val response = requests.get(url)
-      val planet   = response.text()
+      Try(requests.get(url)) match
 
-      // Handle failed requests
-      if response.statusCode != 200
-      then println(s"Error getting planet at url '$url', got '${response.statusCode}'.")
-      else
-        // Extract the name and handle the missing field
-        ujson.read(planet)("name").strOpt match
-          case None =>
-            println(s"Unnamed planet at url '$url'!")
-
-          case Some(name) =>
+        // Handle failed requests
+        case Failure(exception) => println(s"Error getting planet at url '$url', got '${exception.getMessage()}'.")
+        case Success(response) =>
+          val planet = response.text()
+          
+          // Extract the name and handle the missing field
+          Try(ujson.read(planet)("name")) match
+            case Failure(exception) => println(s"Unnamed planet at url '$url'! reason: ${exception.getMessage()}")
+            case Success(name) =>
+            
             // Output the data to a json file named after the planet in the output directory
-            os.write.over(
-              dest / s"$name.json",
-              planet
-            ) // Write over existing files, instead of erroring.
+              os.write.over(
+                dest / s"${name.str}.json",
+                planet
+              ) // Write over existing files, instead of erroring.
+              
+              // Print the name for some user feedback
+              println(name.str)
 
-            // Print the name for some user feedback
-            println(name)
 else println(s"Could not find the expected file '$filename', in the working directory.")
