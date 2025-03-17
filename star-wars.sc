@@ -22,19 +22,18 @@ if os.exists(os.pwd / filename) then
 
       // Request the data
       val response = requests.get(url, check = false)
-      val planet = response.text()
 
       // Handle failed requests
       if response.statusCode != 200 then 
         println(s"Error getting planet at url '$url', got '${response.statusCode}'.")
       else
-        ujson.read(planet).objOpt match
+        ujson.read(response.text()).objOpt match
 
           // Handle the failed reads in case the paylod is not a JsonObject
           case None => println(s"Received answer is not a JsonObject at url '$url'!")
 
-          // Extract the name
-          case Some(json) => json.get("name") match
+          // Extract the name from the planet
+          case Some(planet) => planet.get("name") match
 
             // Handle the missing field "name"
             case None => println(s"Unnamed planet at url '$url'!")
