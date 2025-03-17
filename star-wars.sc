@@ -3,10 +3,6 @@
 //> using dep com.lihaoyi::requests:0.9.0
 //> using dep com.lihaoyi::upickle:4.1.0
 
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
-
 // Create, or if it exists already, clear and recreate the output dir
 val dest = os.pwd / "output"
 
@@ -21,28 +17,35 @@ then
   // Read the file
   os.read.lines
     .stream(os.pwd / filename) // Stream in case it's a lot of data.
+    .filter(_.nonEmpty)
     .foreach: url =>
 
       // Request the data
-      Try(requests.get(url)) match
+      val response = requests.get(url, check = false)
+      val planet = response.text()
 
-        // Handle failed requests
-        case Failure(exception) => println(s"Error getting planet at url '$url', got '${exception.getMessage()}'.")
-        case Success(response) =>
-          val planet = response.text()
+      // Handle failed requests
+      if response.statusCode != 200 then println(s"Error getting planet at url '$url', got '${response.statusCode}'.")
+      else
+        
+        val json = ujson.read(planet).objOpt
+        
+        // Handle the failed reads in case the paylod is not a JsonObject
+        if json.isEmpty then println(s"Received answer is not a JsonObject at url '$url'!")
+        else 
           
           // Extract the name and handle the missing field
-          Try(ujson.read(planet)("name")) match
-            case Failure(exception) => println(s"Unnamed planet at url '$url'! reason: ${exception.getMessage()}")
-            case Success(name) =>
-            
-            // Output the data to a json file named after the planet in the output directory
-              os.write.over(
-                dest / s"${name.str}.json",
-                planet
-              ) // Write over existing files, instead of erroring.
-              
-              // Print the name for some user feedback
-              println(name.str)
+          val name = json.get.get("name")
+          
+          if name.isEmpty then println(s"Unnamed planet at url '$url'!")
+           
+          // Output the data to a json file named after the planet in the output directory
+          else 
+            os.write
+            // Write over existing files, instead of erroring.
+              .over(dest / s"${name.get.str}.json", planet) 
+          
+            // Print the name for some user feedback
+            println(name.get.str)
 
 else println(s"Could not find the expected file '$filename', in the working directory.")
