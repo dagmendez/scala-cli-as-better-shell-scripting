@@ -1,6 +1,8 @@
 .bsp
 .idea
+.metals
 .scala-build
+.vscode
 output
 *.class
 *.log

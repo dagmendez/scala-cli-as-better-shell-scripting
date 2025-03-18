@@ -3,6 +3,10 @@ https://swapi.dev/api/planets/2/
 https://swapi.dev/api/planets/3/
 https://swapi.dev/api/planets/4/
 https://swapi.dev/api/planets/5/
+
+https://swapi.dev/api/plenets/1/
+https://swapi.dev/api/films/1/
+
 https://swapi.dev/api/planets/6/
 https://swapi.dev/api/planets/7/
 https://swapi.dev/api/planets/8/

@@ -1,5 +1,4 @@
 //> using scala 3.3.5
-
 //> using dep com.lihaoyi::os-lib:0.11.4
 //> using dep com.lihaoyi::requests:0.9.0
 //> using dep com.lihaoyi::upickle:4.1.0
@@ -11,33 +10,41 @@ if os.exists(dest) then os.remove.all(dest)
 
 os.makeDir(dest)
 
-val filename = "planets.txt"
+val filename = "better_planets.txt" // It will handle errors without crashing
 
 if os.exists(os.pwd / filename) then
-  // Read the file
+ 
+  // Read the lines of the input file
   os.read.lines
-    .stream(os.pwd / filename) // Stream in case it's a lot of data.
+    .stream(os.pwd / filename) // Stream in case it's a lot of data
+    .filter(_.nonEmpty) // Filter empty lines in the input file
     .foreach: url =>
+
       // Request the data
-      val response = requests.get(url)
-      val planet   = response.text()
+      val response = requests.get(url, check = false)
 
       // Handle failed requests
-      if response.statusCode != 200
-      then println(s"Error getting planet at url '$url', got '${response.statusCode}'.")
+      if response.statusCode != 200 then 
+        println(s"Error getting planet at url '$url', got '${response.statusCode}'.")
       else
-        // Extract the name and handle the missing field
-        ujson.read(planet)("name").strOpt match
-          case None =>
-            println(s"Unnamed planet at url '$url'!")
+        ujson.read(response.text()).objOpt match
 
-          case Some(name) =>
-            // Output the data to a json file named after the planet in the output directory
-            os.write.over(
-              dest / s"$name.json",
-              planet
-            ) // Write over existing files, instead of erroring.
+          // Handle the failed reads in case the paylod is not a JsonObject
+          case None => println(s"Received answer is not a JsonObject at url '$url'!")
 
-            // Print the name for some user feedback
-            println(name)
+          // Extract the name from the planet
+          case Some(planet) => planet.get("name") match
+
+            // Handle the missing field "name"
+            case None => println(s"Unnamed planet at url '$url'!")
+
+             // Output the data to a json file named after the planet in the output directory
+            case Some(name) => 
+
+              // Write over existing files, instead of erroring
+              os.write.over(dest / s"${name.str}.json", planet)        
+
+              // Print the name for some user feedback
+              println(name.str)
+
 else println(s"Could not find the expected file '$filename', in the working directory.")
